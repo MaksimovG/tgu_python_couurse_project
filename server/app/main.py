@@ -3,22 +3,31 @@
 import os
 import uuid
 from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from pathlib import Path
 from pydantic import BaseModel
 from repository.images_repository import global_repository
-from decorators import log_execution, observe_errors
+from app.decorators import log_execution, observe_errors
 
 load_dotenv()
 UPLOAD_DIR = os.getenv('UPLOAD_DIR')
 Path(UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Разрешены запросы с любого источника
+    allow_credentials=True,
+    allow_methods=["*"], # Разрешены все методы (GET, POST, PUT, DELETE)
+    allow_headers=["*"] # Разрешены все заголовки
+)
 
 @app.get("/")
 @log_execution
 @observe_errors
-def read_root():
+async def read_root():
     return {"images": global_repository.get_images()}
 
 
@@ -52,4 +61,12 @@ async def uppoad_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-    
+@app.get("/{UPLOAD_DIR}/{image_name}")
+async def get_image(image_name: str):
+    """Метод для получения изображения по имени."""
+    file_path = os.path.join(UPLOAD_DIR, image_name)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return FileResponse(file_path)

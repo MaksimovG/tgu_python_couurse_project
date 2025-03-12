@@ -1,10 +1,9 @@
-# decorators.py
+# app/decorators.py
 
 import logging
 from functools import wraps
 from fastapi import HTTPException
 
-# Настройка логгера
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
